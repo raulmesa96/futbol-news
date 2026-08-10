@@ -1,0 +1,11 @@
+# El token del bot vive aquí y NO se sube jamás. En GitHub Actions llega por
+# secrets; en local, por este fichero.
+.env
+
+.venv/
+__pycache__/
+*.pyc
+
+# news.db SÍ se versiona a propósito: es el historial de lo publicado y sin él
+# GitHub Actions repetiría noticias en cada ejecución (el corredor se borra al
+# terminar). Lo actualiza el propio workflow.

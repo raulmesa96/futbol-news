@@ -1,0 +1,54 @@
+name: Publicar noticias
+
+on:
+  schedule:
+    # Cada 30 minutos, en UTC. GitHub no garantiza la puntualidad: en horas
+    # punta las ejecuciones programadas se retrasan y alguna se salta. Para un
+    # canal de noticias da igual, pero no esperes relojería.
+    - cron: "*/30 * * * *"
+  workflow_dispatch:   # botón "Run workflow" para lanzarlo a mano
+
+# Dos ejecuciones solapadas publicarían la misma noticia dos veces, porque cada
+# una leería el historial antes de que la otra lo hubiera actualizado.
+concurrency:
+  group: publicar
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # necesario para guardar news.db actualizado
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Publicar noticias
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHANNEL: ${{ secrets.TELEGRAM_CHANNEL }}
+        run: python bot.py
+
+      # El corredor se destruye al terminar, así que el historial de noticias
+      # publicadas tiene que volver al repositorio: es la única memoria que
+      # impide repetir noticias en la siguiente ejecución.
+      - name: Guardar historial
+        run: |
+          if [ -z "$(git status --porcelain news.db)" ]; then
+            echo "Sin novedades que guardar."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add news.db
+          git commit -m "historial: $(date -u '+%Y-%m-%d %H:%M') UTC [skip ci]"
+          # Otra ejecución puede haber empujado mientras tanto; rebase y punto.
+          git pull --rebase --autostash
+          git push
