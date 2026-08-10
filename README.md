@@ -60,9 +60,24 @@ nada que ver. Lo que importa es que coincidan los nombres propios.
   Se busca en `media:content` (la resolución mayor), `media:thumbnail`,
   los `enclosure` y, si no, en el `<img>` incrustado en el resumen. Si aun así
   no hay, se entra en la noticia a por la `og:image`.
-- **Texto**: titular en negrita, el resumen del propio feed recortado a
-  `SUMMARY_MAX_CHARS`, y el medio de origen. Si el resumen no es más que el
-  titular repetido (pasa en algunos feeds), se omite.
+- **Texto**: un emoji, el titular en negrita, el resumen del propio feed
+  recortado a `SUMMARY_MAX_CHARS`, y el medio de origen. Si el resumen no es
+  más que el titular repetido (pasa en algunos feeds), se omite.
+- **Emoji**: se elige según lo que cuenta el titular (`EMOJI_RULES` en
+  [config.py](config.py)): 🚑 lesiones, ✍️ fichajes, 👀 rumores, 🏆 títulos,
+  📅 horarios... Sobre 426 titulares reales, algo menos de la mitad cae en
+  alguna categoría y el resto lleva ⚽.
+
+  Dos cosas de las que no conviene fiarse al editar esas listas. Las palabras
+  se comparan **enteras**: con fragmentos, "precio" picaba en *"Precioso"* y
+  "once" en *"reaparece once meses después"*. Y hay palabras cuyo sentido
+  cambia con la frase: "vuelve" parecía buen indicador de regreso hasta que
+  apareció *"Francia vuelve a estrellarse"*, donde significa "otra vez"; por
+  eso ahí solo valen las formas que van a un sitio (`vuelve al`, `regresa`).
+
+  Las noticias de luto y sucesos (`EMOJI_NONE`) van **sin emoji**. Estos feeds
+  mezclan fichajes con muertes y accidentes con toda naturalidad, y un 🔥
+  encima de un obituario es de las pocas cosas capaces de hundir un canal.
 - **Botón**: *Ver más →* apuntando a la URL original. Todo el tráfico va al
   medio, que es lo que corresponde: aquí no se reproduce el artículo, solo el
   titular y la entradilla que el propio medio publica en abierto en su RSS.

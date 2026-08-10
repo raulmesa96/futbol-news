@@ -82,3 +82,68 @@ SUMMARY_MAX_CHARS = 320
 
 # Texto del botón que lleva a la noticia original.
 READ_MORE_LABEL = "Ver más →"
+
+# --- Emojis del titular -------------------------------------------------------
+
+# El post se encabeza con un emoji elegido según lo que cuenta la noticia. Se
+# comparan palabras sueltas contra el titular (en minúsculas y sin acentos) y
+# gana la PRIMERA regla que encaje, así que el orden importa: lo más específico
+# arriba. Añade o quita palabras con libertad, es una simple lista.
+# Las palabras se comparan ENTERAS, no como fragmentos: si no, "precio" pica
+# en "Precioso" y "gol" en "golpe". Por eso hay que listar las variantes
+# (singular y plural, masculino y femenino) que quieras cazar.
+EMOJI_RULES = [
+    (("lesion", "lesiones", "lesionado", "lesionada", "lesiona", "rotura",
+      "operado", "operacion", "recaida", "molestias"), "🚑"),
+    (("oficial", "oficiales", "oficialmente", "confirma", "confirmado",
+      "ultima hora"), "🚨"),
+    (("ficha", "fichaje", "fichajes", "fichar", "firma", "firmar", "firmado",
+      "traspaso", "cesion", "cedido", "renueva", "renovar", "renovacion",
+      "acuerdo", "oferta", "ofertas"), "✍️"),
+    (("quiere", "interes", "interesa", "pretende", "sondea", "gusta", "suena",
+      "negocia", "puja", "pujar", "objetivo"), "👀"),
+    (("gol", "goles", "golazo", "doblete", "goleada", "golea", "remontada",
+      "remonta", "victoria", "vence", "gana", "derrota", "empate",
+      "empata"), "⚽"),
+    (("campeon", "campeona", "titulo", "trofeo", "final", "champions",
+      "mundial", "eurocopa", "copa"), "🏆"),
+    (("polemica", "estalla", "critica", "guerra", "bronca", "tension",
+      "enfado", "explota", "escandalo"), "🔥"),
+    (("debut", "debuta", "presentacion", "presentado", "estreno",
+      "estrena"), "🎬"),
+    # Ojo con "vuelve" a secas: en "Francia vuelve a estrellarse" significa
+    # "otra vez", no un regreso. Solo cuentan las formas que van a un sitio.
+    (("regresa", "regreso", "retorno", "vuelve al", "vuelve a la",
+      "de vuelta"), "🔙"),
+    (("calendario", "horario", "horarios", "fecha", "fechas", "jornada",
+      "sorteo", "donde ver"), "📅"),
+    # "once" a secas no vale: pica en "reaparece once meses después".
+    (("convocatoria", "convocado", "alineacion", "onces", "once titular",
+      "entrenador", "tecnico", "banquillo", "plantilla", "dorsal",
+      "dorsales"), "📋"),
+    (("millones", "salario", "sueldo", "precio", "clausula"), "💰"),
+    (("entrenamiento", "entrena", "pretemporada", "amistoso", "gira"), "🏋️"),
+    (("dice", "asegura", "admite", "reconoce", "responde", "avisa", "declara",
+      "entrevista", "rueda de prensa"), "🎙️"),
+]
+
+# Muchos titulares no son más que una frase entrecomillada de alguien. Eso no
+# lo detecta ninguna palabra suelta, así que se mira aparte: si el titular
+# lleva una cita entre comillas dobles (las simples no valen, los medios las
+# usan para apodos: el 'Cholo', la 'pedrea'), se marca como declaración.
+# Se comprueba DESPUÉS de las reglas de arriba: si la cita habla de un fichaje,
+# manda el fichaje. Déjalo en "" para desactivarlo.
+EMOJI_QUOTE = "🎙️"
+
+# Emoji cuando no encaja ninguna regla.
+EMOJI_DEFAULT = "⚽"
+
+# Noticias donde cualquier emoji llamativo queda fuera de lugar: en estos feeds
+# salen muertes, accidentes y funerales con la misma naturalidad que un fichaje.
+# Si el titular contiene alguna de estas palabras, el post va sin emoji.
+EMOJI_NONE = [
+    "muere", "muerte", "fallece", "fallecid", "luto", "funeral", "entierro",
+    "sepelio", "accidente", "atropell", "agresion", "agrede", "racismo",
+    "racista", "denuncia", "juicio", "carcel", "prision", "condena",
+    "detenido", "abusos", "violencia", "cancer", "enfermedad", "uci",
+]
