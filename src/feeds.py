@@ -41,8 +41,18 @@ TAG_RE = re.compile(r"<[^>]+>")
 # Varios medios cierran la descripción con un enlace "Leer más"; al quitar las
 # etiquetas queda el texto del enlace colgando al final del resumen.
 TRAILING_JUNK_RE = re.compile(
-    r"[\s.·|–—-]*(leer(\s+m[áa]s)?|seguir\s+leyendo|ver\s+m[áa]s|continuar\s+leyendo)"
-    r"[\s.·|…]*$",
+    r"[\s.·|–—-]*(leer(\s+(la\s+)?noticia\s+completa|\s+m[áa]s)?|seguir\s+leyendo"
+    r"|ver\s+m[áa]s|continuar\s+leyendo)[\s.·|…]*$",
+    re.I,
+)
+
+# La misma llamada a la acción, pero en su propia línea: Sport la mete así en
+# las 50 noticias de su feed. Al trocear el texto en párrafos se quedaba como
+# un párrafo más ("🔹 Leer la noticia completa"). Solo se descarta la línea si
+# no contiene nada más, para no llevarse texto de verdad por delante.
+CTA_LINE_RE = re.compile(
+    r"^[\s\W]*(leer(\s+(la\s+)?noticia\s+completa|\s+m[áa]s)?|seguir\s+leyendo"
+    r"|sigue\s+leyendo|continuar\s+leyendo|ver\s+m[áa]s|lee\s+tambi[ée]n)[\s\W]*$",
     re.I,
 )
 IMG_SRC_RE = re.compile(r'<img[^>]+src=["\']([^"\']+)["\']', re.I)
@@ -93,6 +103,7 @@ def clean_text(raw: str) -> str:
     text = re.sub(r"[^\S\n]+", " ", text)          # espacios, sin tocar saltos
     text = re.sub(r" *\n *", "\n", text)
     text = re.sub(r"\n{2,}", "\n\n", text).strip()
+    text = "\n".join(l for l in text.split("\n") if not CTA_LINE_RE.match(l))
     # Quitar los <a> de dentro del texto deja el espacio delante del signo de
     # puntuación que los seguía: "Oyarzabal , clave en...".
     text = re.sub(r"\s+([,.;:!?%）)\]])", r"\1", text)
