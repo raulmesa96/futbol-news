@@ -2,10 +2,13 @@ name: Publicar noticias
 
 on:
   schedule:
-    # Cada 30 minutos, en UTC. GitHub no garantiza la puntualidad: en horas
-    # punta las ejecuciones programadas se retrasan y alguna se salta. Para un
-    # canal de noticias da igual, pero no esperes relojería.
-    - cron: "*/30 * * * *"
+    # Cada 30 minutos, en UTC, pero en los minutos 07 y 37 en vez de 00 y 30.
+    # GitHub da prioridad baja a las tareas programadas y, cuando hay
+    # saturación, las DESCARTA en lugar de retrasarlas. Los minutos en punto y
+    # y media son los más congestionados porque es donde programa todo el
+    # mundo; correr a destiempo reduce mucho los turnos perdidos.
+    # Aun así no esperes relojería: seguirá habiendo saltos.
+    - cron: "7,37 * * * *"
   workflow_dispatch:   # botón "Run workflow" para lanzarlo a mano
 
 # Dos ejecuciones solapadas publicarían la misma noticia dos veces, porque cada
@@ -48,7 +51,10 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add news.db
-          git commit -m "historial: $(date -u '+%Y-%m-%d %H:%M') UTC [skip ci]"
+          # Sin "[skip ci]": no hay disparador por push, así que no sirve de
+          # nada, y es una variable menos a la hora de averiguar por qué
+          # GitHub decide no lanzar un turno programado.
+          git commit -m "historial: $(date -u '+%Y-%m-%d %H:%M') UTC"
           # Otra ejecución puede haber empujado mientras tanto; rebase y punto.
           git pull --rebase --autostash
           git push
