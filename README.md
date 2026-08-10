@@ -60,13 +60,25 @@ nada que ver. Lo que importa es que coincidan los nombres propios.
   Se busca en `media:content` (la resolución mayor), `media:thumbnail`,
   los `enclosure` y, si no, en el `<img>` incrustado en el resumen. Si aun así
   no hay, se entra en la noticia a por la `og:image`.
-- **Texto**: un emoji, el titular en negrita, el resumen del propio feed
-  recortado a `SUMMARY_MAX_CHARS`, y el medio de origen. Si el resumen no es
-  más que el titular repetido (pasa en algunos feeds), se omite.
-- **Emoji**: se elige según lo que cuenta el titular (`EMOJI_RULES` en
-  [config.py](config.py)): 🚑 lesiones, ✍️ fichajes, 👀 rumores, 🏆 títulos,
-  📅 horarios... Sobre 426 titulares reales, algo menos de la mitad cae en
-  alguna categoría y el resto lleva ⚽.
+- **Texto**: cabecera, titular en negrita, el texto del propio feed recortado a
+  `SUMMARY_MAX_CHARS`, y el pie `🗞 Vía: <medio>`. Si el resumen no es más que
+  el titular repetido (pasa en algunos feeds), se omite.
+- **Sin enlace**. El post no lleva botón ni URL: la atribución es el pie
+  `Vía:`. Conviene saber lo que eso implica — con enlace, el tráfico volvía al
+  medio y el post era una cita; sin él, se publica más texto ajeno y lo único
+  que queda es el nombre de la fuente.
+- **Cuánto texto hay**: se coge lo más largo que publique cada feed, que varía
+  muchísimo. AS mete el artículo entero (2.600 caracteres de media), Sport
+  ~550, Mundo Deportivo ~320 y Marca apenas ~100. Los posts de Marca serán
+  cortos y no hay forma de evitarlo sin entrar a la noticia a rascar texto.
+  El techo real lo pone Telegram, que corta los pies de foto en 1024.
+- **Cabecera**: si la noticia cruza fronteras (un fichaje del PSG al
+  Liverpool), las banderas de los países implicados — 28% de las noticias.
+  Solo con dos o más países: un 🇪🇸 delante de cada noticia de LaLiga saldría
+  en media portada sin decir nada. Si no, un emoji elegido según lo que cuenta
+  el titular (`EMOJI_RULES` en [config.py](config.py)): 🚑 lesiones,
+  ✍️ fichajes, 👀 rumores, 🏆 títulos, 📅 horarios... Algo menos de la mitad
+  cae en alguna categoría y el resto lleva ⚽.
 
   Dos cosas de las que no conviene fiarse al editar esas listas. Las palabras
   se comparan **enteras**: con fragmentos, "precio" picaba en *"Precioso"* y

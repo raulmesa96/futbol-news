@@ -31,6 +31,12 @@ HEADERS = {
 # Parámetros de tracking: dos enlaces que solo difieren en esto son el mismo.
 TRACKING_PARAMS = {"fbclid", "gclid", "igshid", "s", "ref", "cmpid", "_ga"}
 
+# Las etiquetas de bloque separan frases y valen un espacio; las de línea
+# (<a>, <b>, <span>...) aparecen a mitad de palabra y hay que borrarlas sin
+# dejar rastro, o salen cosas como "Real Madr id".
+BLOCK_TAG_RE = re.compile(
+    r"</?(p|br|div|li|ul|ol|tr|td|h[1-6]|blockquote|figure|section)[^>]*>", re.I
+)
 TAG_RE = re.compile(r"<[^>]+>")
 # Varios medios cierran la descripción con un enlace "Leer más"; al quitar las
 # etiquetas queda el texto del enlace colgando al final del resumen.
@@ -78,9 +84,15 @@ def clean_text(raw: str) -> str:
     """HTML del resumen -> texto plano de una sola línea."""
     if not raw:
         return ""
-    text = TAG_RE.sub(" ", raw)
+    # Las etiquetas de bloque se vuelven saltos de línea para conservar los
+    # párrafos: en los medios que publican el artículo entero, un muro de texto
+    # de 800 caracteres en un pie de foto no lo lee nadie.
+    text = BLOCK_TAG_RE.sub("\n", raw)
+    text = TAG_RE.sub("", text)
     text = unescape(text)
-    text = re.sub(r"\s+", " ", text).strip()
+    text = re.sub(r"[^\S\n]+", " ", text)          # espacios, sin tocar saltos
+    text = re.sub(r" *\n *", "\n", text)
+    text = re.sub(r"\n{2,}", "\n\n", text).strip()
     # Quitar los <a> de dentro del texto deja el espacio delante del signo de
     # puntuación que los seguía: "Oyarzabal , clave en...".
     text = re.sub(r"\s+([,.;:!?%）)\]])", r"\1", text)
@@ -137,6 +149,20 @@ def scrape_og_image(url: str) -> str | None:
     return unescape(match.group(1)) if match else None
 
 
+def _best_text(entry) -> str:
+    """El texto más largo que ofrezca la entrada.
+
+    Los medios no se ponen de acuerdo: AS mete el artículo entero en
+    `content:encoded` y deja en `description` un resumen de dos líneas, Sport y
+    Mundo Deportivo solo traen `description`, y Marca apenas un titular
+    ampliado. Como el post ya no lleva enlace, nos quedamos con lo más completo
+    que publique cada uno.
+    """
+    candidatos = [getattr(entry, "summary", "") or ""]
+    candidatos += [c.get("value", "") for c in getattr(entry, "content", [])]
+    return max((clean_text(c) for c in candidatos), key=len, default="")
+
+
 def _published(entry) -> datetime | None:
     for attr in ("published_parsed", "updated_parsed"):
         parsed = getattr(entry, attr, None)
@@ -145,8 +171,12 @@ def _published(entry) -> datetime | None:
     return None
 
 
-def fetch(source: str, url: str) -> list[Article]:
-    """Lee un feed y devuelve sus entradas como `Article`."""
+def fetch(source: str, url: str, path_filter: str | None = None) -> list[Article]:
+    """Lee un feed y devuelve sus entradas como `Article`.
+
+    `path_filter` descarta las noticias cuya URL no lo contenga, que es como se
+    saca el fútbol de un feed generalista.
+    """
     try:
         r = requests.get(url, headers=HEADERS, timeout=20)
         r.raise_for_status()
@@ -166,11 +196,13 @@ def fetch(source: str, url: str) -> list[Article]:
         if not link or not title:
             continue
         link = canonical_url(link)
+        if path_filter and path_filter not in link:
+            continue
         articles.append(
             Article(
                 source=source,
                 title=title,
-                summary=clean_text(getattr(entry, "summary", "")),
+                summary=_best_text(entry),
                 link=link,
                 image=_entry_image(entry),
                 published=_published(entry),
@@ -184,7 +216,10 @@ def fetch(source: str, url: str) -> list[Article]:
 def fetch_all() -> list[Article]:
     """Todas las fuentes de config.FEEDS, de más reciente a más antigua."""
     articles: list[Article] = []
-    for source, url in config.FEEDS:
-        articles.extend(fetch(source, url))
+    for feed in config.FEEDS:
+        # Las entradas de config.FEEDS pueden traer filtro de ruta o no.
+        source, url = feed[0], feed[1]
+        path_filter = feed[2] if len(feed) > 2 else None
+        articles.extend(fetch(source, url, path_filter))
     articles.sort(key=lambda a: a.published or datetime.min.replace(tzinfo=timezone.utc))
     return articles

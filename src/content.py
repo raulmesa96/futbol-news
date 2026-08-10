@@ -17,8 +17,29 @@ def truncate(text: str, limit: int) -> str:
     """Recorta por la última palabra entera que quepa."""
     if len(text) <= limit:
         return text
-    cut = text[:limit].rsplit(" ", 1)[0].rstrip(" ,.;:-–—")
-    return f"{cut}…"
+    cut = text[:limit]
+    corte = max(cut.rfind(" "), cut.rfind("\n"))
+    if corte > 0:
+        cut = cut[:corte]
+    return f"{cut.rstrip(' \n,.;:-–—')}…"
+
+
+# Un párrafo más corto que esto y sin puntuación final no es una frase: es un
+# ladillo del artículo. Sin marcarlo, en el post queda como una línea suelta.
+SUBTITULO_MAX = 80
+
+
+def formatear(texto: str) -> str:
+    """Escapa el resumen y marca en negrita los ladillos del artículo."""
+    parrafos = []
+    for i, parrafo in enumerate(texto.split("\n\n")):
+        p = escape(parrafo.strip())
+        if not p:
+            continue
+        if i and len(p) <= SUBTITULO_MAX and not p.endswith((".", "!", "?", "…", '"', "»", ":")):
+            p = f"<b>{p}</b>"
+        parrafos.append(p)
+    return "\n\n".join(parrafos)
 
 
 def _useful_summary(article: Article) -> str:
@@ -42,10 +63,23 @@ def _patron(palabras) -> re.Pattern:
 
 _SIN_EMOJI = _patron(config.EMOJI_NONE)
 _REGLAS = [(_patron(palabras), emoji) for palabras, emoji in config.EMOJI_RULES]
+_BANDERAS = [(_patron(clubes), bandera) for bandera, clubes in config.CLUB_FLAGS]
 
 # Cita entre comillas dobles con contenido suficiente para ser una frase y no
 # un apodo. Se aplica sobre el titular original, no sobre el normalizado.
 _CITA = re.compile(r'[«"“][^»"”]{15,}[»"”]')
+
+
+def flags_for(text: str) -> str:
+    """Banderas de los países implicados, solo si la noticia cruza fronteras.
+
+    Con un solo país no se devuelve nada: un 🇪🇸 delante de cada noticia de
+    LaLiga saldría en la mitad de los posts y no diría nada que el lector no
+    supiera. Con dos o más, en cambio, resume la historia de un vistazo.
+    """
+    normalizado = dedup.strip_accents(text.lower())
+    encontradas = [b for patron, b in _BANDERAS if patron.search(normalizado)]
+    return "".join(encontradas[:3]) if len(encontradas) >= 2 else ""
 
 
 def emoji_for(title: str) -> str:
@@ -76,16 +110,19 @@ def build(article: Article, *, with_image: bool) -> str:
 
     title = escape(truncate(article.title, 200))
     source = escape(article.source)
-    footer = f"📰 {source}"
+    footer = f"{config.VIA_LABEL} {source}"
 
-    emoji = emoji_for(article.title)
-    parts = [f"{emoji} <b>{title}</b>" if emoji else f"<b>{title}</b>"]
+    # Las banderas mandan sobre el emoji de tema: si la noticia cruza fronteras,
+    # eso es lo primero que interesa saber.
+    cabecera = flags_for(f"{article.title} {article.summary}") or emoji_for(article.title)
+    parts = [f"{cabecera} <b>{title}</b>" if cabecera else f"<b>{title}</b>"]
+
     summary = _useful_summary(article)
     if summary:
         # Lo que quede libre tras titular y pie, con tope propio de config.
         budget = min(config.SUMMARY_MAX_CHARS, limit - len(title) - len(footer) - 8)
         if budget > 60:
-            parts.append(escape(truncate(summary, budget)))
+            parts.append(formatear(truncate(summary, budget)))
     parts.append(footer)
 
     return "\n\n".join(parts)

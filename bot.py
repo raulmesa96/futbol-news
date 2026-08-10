@@ -86,10 +86,10 @@ def run(dry_run: bool) -> int:
             print("─" * 60)
             print(f"[{article.source}] imagen: {article.image or 'NINGUNA'}")
             print(text)
-            print(f"[{config.READ_MORE_LABEL}] -> {article.link}")
+            print(f"({len(text)} caracteres)")
             continue
 
-        envio = telegram_publisher.publish(text, article.link, article.image)
+        envio = telegram_publisher.publish(text, article.image)
         if envio.reintentable:
             # Consta que no se publicó: la noticia sigue siendo candidata en la
             # siguiente ejecución.
@@ -150,8 +150,9 @@ def check() -> int:
         print("[ERR] Telegram: revisa TELEGRAM_BOT_TOKEN / TELEGRAM_CHANNEL en .env")
         ok = False
 
-    for source, url in config.FEEDS:
-        articles = feeds.fetch(source, url)
+    for feed in config.FEEDS:
+        source, url = feed[0], feed[1]
+        articles = feeds.fetch(source, url, feed[2] if len(feed) > 2 else None)
         if articles:
             con_imagen = sum(1 for a in articles if a.image)
             print(f"[OK]  {source:<18} {len(articles):>3} noticias, "

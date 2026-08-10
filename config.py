@@ -17,20 +17,23 @@ TELEGRAM_CHANNEL = os.getenv("TELEGRAM_CHANNEL", "")
 # escríbelo como quieras que se lea en el canal.
 # Para añadir una fuente basta con meterla aquí: el resto del pipeline es
 # genérico y no sabe nada de medios concretos.
-# Todos estos están comprobados y traen imagen en el 100% de las entradas.
-# Ojo al añadir: usa siempre feeds de la sección de fútbol. Los feeds
-# generalistas de un diario deportivo meten NBA, tenis y motor en el canal.
+# (nombre, url) o (nombre, url, filtro) — el filtro es un trozo de ruta que la
+# URL de la noticia debe contener. Solo hace falta en feeds generalistas: el de
+# Relevo mezcla fútbol con MotoGP, natación y boxeo, y sin filtrar acabarían en
+# el canal. Todos están comprobados y traen imagen en el 100% de las entradas.
 FEEDS = [
     ("Marca", "https://e00-marca.uecdn.es/rss/futbol/primera-division.xml"),
     ("Marca", "https://e00-marca.uecdn.es/rss/futbol/champions-league.xml"),
     ("Marca", "https://e00-marca.uecdn.es/rss/futbol/mas-futbol.xml"),
     ("Mundo Deportivo", "https://www.mundodeportivo.com/feed/rss/futbol"),
+    ("Mundo Deportivo", "https://www.mundodeportivo.com/feed/rss/futbol/fichajes"),
     ("Sport", "https://www.sport.es/es/rss/futbol/rss.xml"),
     ("AS", "https://as.com/rss/futbol/primera.xml"),
     ("AS", "https://as.com/rss/futbol/internacional.xml"),
-    # Otros comprobados que puedes activar:
-    # ("Marca", "https://e00-marca.uecdn.es/rss/futbol/premier-league.xml"),
-    # ("AS", "https://as.com/rss/futbol/portada.xml"),
+    # Relevo es la casa de Matteo Moretto, el socio español de Fabrizio Romano
+    # en el mercado de fichajes. Su único RSS que funciona es generalista, de
+    # ahí el filtro; el de /rss/futbol/ devuelve XML mal formado.
+    ("Relevo", "https://www.relevo.com/rss/", "/futbol/"),
 ]
 
 # --- Filtros ------------------------------------------------------------------
@@ -49,7 +52,9 @@ SECONDS_BETWEEN_POSTS = 3
 
 # Palabras que descartan una noticia (minúsculas, sin acentos). Útil para
 # quitar directos, quinielas o secciones que no quieres en el canal.
-BLOCKLIST = ["horoscopo", "quiniela", "en directo | minuto a minuto"]
+# "en directo" saca los minuto a minuto y los liveblogs del mercado de
+# fichajes, que los medios reescriben cada hora y llenarían el canal.
+BLOCKLIST = ["horoscopo", "quiniela", "en directo", "minuto a minuto"]
 
 # Si la noticia no trae ninguna imagen en el RSS, ¿la publicamos igual como
 # mensaje de texto? False = se descarta.
@@ -76,12 +81,18 @@ TITLE_SIMILARITY = 0.56
 
 # --- Formato del post ---------------------------------------------------------
 
-# Caracteres máximos del resumen en el post (Telegram corta los pies de foto
-# en 1024 en total; el resto del presupuesto es para titular y fuente).
-SUMMARY_MAX_CHARS = 320
+# Caracteres máximos del resumen en el post. El techo real lo pone Telegram,
+# que corta los pies de foto en 1024 contando titular y pie de fuente, así que
+# subir esto de ~850 no sirve de nada.
+# Cuánto texto hay disponible de verdad, medido en los feeds: AS publica el
+# artículo entero (2.600 de media), Sport ~550, Mundo Deportivo ~320 y Marca
+# apenas ~100. Los posts de Marca seguirán siendo cortos porque su feed no da
+# más de sí.
+SUMMARY_MAX_CHARS = 800
 
-# Texto del botón que lleva a la noticia original.
-READ_MORE_LABEL = "Ver más →"
+# Pie de atribución. Sin enlace a la noticia, esto es lo único que dice de
+# dónde sale la información.
+VIA_LABEL = "🗞 Vía:"
 
 # --- Emojis del titular -------------------------------------------------------
 
@@ -137,6 +148,40 @@ EMOJI_QUOTE = "🎙️"
 
 # Emoji cuando no encaja ninguna regla.
 EMOJI_DEFAULT = "⚽"
+
+# --- Banderas de los clubes ---------------------------------------------------
+
+# Cuando una noticia cruza fronteras (un fichaje del PSG al Liverpool) el post
+# se encabeza con las banderas de los dos países en vez de con el emoji de
+# tema. Solo se hace con DOS O MÁS países distintos: una noticia de LaLiga con
+# un 🇪🇸 delante no aporta nada, y saldría en la mitad de los posts.
+#
+# El orden importa: se buscan por palabras enteras y de arriba abajo, así que
+# "Inter Miami" tiene que ir antes que "Inter".
+CLUB_FLAGS = [
+    ("🏴󠁧󠁢󠁥󠁮󠁧󠁿", ("liverpool", "manchester city", "manchester united", "chelsea",
+            "arsenal", "tottenham", "newcastle", "aston villa", "everton",
+            "west ham", "brighton", "brentford", "fulham", "crystal palace",
+            "nottingham", "leeds", "wolverhampton", "premier league")),
+    ("🇫🇷", ("psg", "paris saint-germain", "marsella", "monaco", "lyon",
+            "lille", "niza", "rennes", "ligue 1")),
+    # "inter" a secas se queda fuera aposta: chocaba con el Inter Miami. El
+    # Inter de Milán se caza igual por "milan".
+    ("🇮🇹", ("juventus", "milan", "napoles", "napoli", "roma", "lazio",
+            "atalanta", "fiorentina", "serie a")),
+    ("🇩🇪", ("bayern", "borussia", "dortmund", "leipzig", "leverkusen",
+            "stuttgart", "eintracht", "bundesliga")),
+    ("🇵🇹", ("benfica", "oporto", "porto", "braga")),
+    ("🇳🇱", ("ajax", "psv", "feyenoord")),
+    ("🇸🇦", ("al nassr", "al hilal", "al ittihad", "al ahli")),
+    ("🇺🇸", ("inter miami", "galaxy", "lafc")),
+    ("🇦🇷", ("boca", "river plate")),
+    ("🇧🇷", ("flamengo", "palmeiras", "corinthians", "santos")),
+    ("🇪🇸", ("real madrid", "barcelona", "barca", "atletico", "sevilla",
+            "betis", "valencia", "villarreal", "athletic", "real sociedad",
+            "celta", "espanyol", "getafe", "osasuna", "girona", "rayo",
+            "mallorca", "alaves", "elche", "levante", "oviedo", "laliga")),
+]
 
 # Noticias donde cualquier emoji llamativo queda fuera de lugar: en estos feeds
 # salen muertes, accidentes y funerales con la misma naturalidad que un fichaje.

@@ -40,11 +40,6 @@ class Envio:
         return not self.publicado and not self.incierto
 
 
-def _keyboard(url: str) -> dict:
-    """Botón 'Ver más' bajo el post, apuntando a la noticia original."""
-    return {"inline_keyboard": [[{"text": config.READ_MORE_LABEL, "url": url}]]}
-
-
 def _call(method: str, **kwargs) -> Envio:
     try:
         r = requests.post(f"{API}/{method}", timeout=60, **kwargs)
@@ -66,20 +61,19 @@ def _call(method: str, **kwargs) -> Envio:
     return Envio(incierto=r.status_code >= 500)
 
 
-def send_text(text: str, link: str) -> Envio:
+def send_text(text: str) -> Envio:
     return _call(
         "sendMessage",
         json={
             "chat_id": config.TELEGRAM_CHANNEL,
             "text": text,
             "parse_mode": "HTML",
-            "reply_markup": _keyboard(link),
             "link_preview_options": {"is_disabled": True},
         },
     )
 
 
-def send_photo(image_url: str, caption: str, link: str) -> Envio:
+def send_photo(image_url: str, caption: str) -> Envio:
     """Publica la imagen del RSS con pie de foto y botón.
 
     Primero se le pasa la URL a Telegram, que es lo barato. Si el medio bloquea
@@ -91,7 +85,6 @@ def send_photo(image_url: str, caption: str, link: str) -> Envio:
         "chat_id": config.TELEGRAM_CHANNEL,
         "caption": caption,
         "parse_mode": "HTML",
-        "reply_markup": _keyboard(link),
     }
 
     envio = _call("sendPhoto", json={**payload, "photo": image_url})
@@ -110,7 +103,7 @@ def send_photo(image_url: str, caption: str, link: str) -> Envio:
         log.warning("Imagen demasiado grande (%d bytes): %s", len(r.content), image_url)
         return envio
 
-    # En multipart todo va como texto: el teclado tiene que ir serializado.
+    # En multipart todo va como texto.
     form = {
         k: json.dumps(v) if isinstance(v, dict) else str(v)
         for k, v in payload.items()
@@ -118,18 +111,18 @@ def send_photo(image_url: str, caption: str, link: str) -> Envio:
     return _call("sendPhoto", data=form, files={"photo": ("image.jpg", r.content)})
 
 
-def publish(text: str, link: str, image_url: str | None) -> Envio:
+def publish(text: str, image_url: str | None) -> Envio:
     """Publica la noticia con imagen si la hay; si no, como texto."""
     if not config.TELEGRAM_BOT_TOKEN or not config.TELEGRAM_CHANNEL:
         log.error("Falta TELEGRAM_BOT_TOKEN o TELEGRAM_CHANNEL en el entorno")
         return Envio()
 
     if image_url:
-        envio = send_photo(image_url, text, link)
+        envio = send_photo(image_url, text)
         if not envio.reintentable:
             return envio
         log.info("Publicando sin imagen como respaldo")
-    return send_text(text, link)
+    return send_text(text)
 
 
 def check() -> str | None:
