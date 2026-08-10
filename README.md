@@ -63,6 +63,15 @@ nada que ver. Lo que importa es que coincidan los nombres propios.
 - **Texto**: cabecera, titular en negrita, el texto del propio feed recortado a
   `SUMMARY_MAX_CHARS`, y el pie `🗞 Vía: <medio>`. Si el resumen no es más que
   el titular repetido (pasa en algunos feeds), se omite.
+- **Párrafos cortos con emoji**: el texto se trocea por frases hasta llegar a
+  `PARAGRAPH_CHARS` y cada párrafo se encabeza con un emoji propio, elegido con
+  las mismas reglas que el titular. Nunca se repite el emoji del párrafo
+  anterior: los párrafos contiguos hablan de lo mismo y saldría el mismo icono
+  tres veces seguidas. Cuando un párrafo no encaja en ninguna regla se usa uno
+  de `PARAGRAPH_FALLBACK`, que van rotando.
+- **El recorte busca un punto y seguido**. Cortar por número de caracteres
+  dejaba colgando fragmentos como *"🔹 Algo que…"* al final del post. Si hay un
+  final de frase a partir del 60% del texto disponible, se corta ahí.
 - **Sin enlace**. El post no lleva botón ni URL: la atribución es el pie
   `Vía:`. Conviene saber lo que eso implica — con enlace, el tráfico volvía al
   medio y el post era una cita; sin él, se publica más texto ajeno y lo único

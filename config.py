@@ -94,6 +94,17 @@ SUMMARY_MAX_CHARS = 800
 # dónde sale la información.
 VIA_LABEL = "🗞 Vía:"
 
+# Longitud a la que se corta cada párrafo del resumen. No es un tope exacto:
+# se van sumando frases enteras hasta pasar de esta cifra, así que el párrafo
+# acaba midiendo esto más lo que ocupe la última frase. Con 130 salen párrafos
+# de dos o tres líneas en el móvil, que es lo que se lee de un vistazo.
+# Súbelo para bloques más densos, bájalo para telegramas.
+PARAGRAPH_CHARS = 130
+
+# Emojis para los párrafos que no hablan de nada reconocible por EMOJI_RULES.
+# Van rotando para no repetir el mismo cinco veces en el mismo post.
+PARAGRAPH_FALLBACK = ("📌", "🔹", "📍", "▪️")
+
 # --- Emojis del titular -------------------------------------------------------
 
 # El post se encabeza con un emoji elegido según lo que cuenta la noticia. Se
