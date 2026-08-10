@@ -89,13 +89,23 @@ def run(dry_run: bool) -> int:
             print(f"[{config.READ_MORE_LABEL}] -> {article.link}")
             continue
 
-        message_id = telegram_publisher.publish(text, article.link, article.image)
-        if message_id is None:
+        envio = telegram_publisher.publish(text, article.link, article.image)
+        if envio.reintentable:
+            # Consta que no se publicó: la noticia sigue siendo candidata en la
+            # siguiente ejecución.
             log.error("No se pudo publicar: %s", article.title)
             continue
 
-        # Solo se registra lo publicado de verdad: si Telegram falla, la noticia
-        # sigue siendo candidata en la siguiente ejecución.
+        if envio.incierto:
+            # Se perdió la respuesta y el post pudo llegar igualmente. Se anota
+            # como publicada: perder una noticia es mucho más barato que
+            # repetirla en el canal.
+            log.warning(
+                "Respuesta perdida al publicar «%s»: se da por publicada", article.title
+            )
+        else:
+            log.info("Publicada [%s] %s", article.source, article.title)
+
         db.record(
             conn,
             source=article.source,
@@ -103,9 +113,8 @@ def run(dry_run: bool) -> int:
             link=article.link,
             title=article.title,
             title_key=dedup.title_key(article.title),
-            message_id=message_id,
+            message_id=envio.message_id,
         )
-        log.info("Publicada [%s] %s", article.source, article.title)
         if i < len(chosen) - 1:
             time.sleep(config.SECONDS_BETWEEN_POSTS)
 
