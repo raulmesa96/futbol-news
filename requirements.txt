@@ -1,3 +1,7 @@
 feedparser>=6.0
 requests>=2.31
 python-dotenv>=1.0
+# Solo para Instagram: convertir el WEBP de Mundo Deportivo a JPEG, recortar a
+# las proporciones que exige y componer las stories. Telegram no lo necesita.
+Pillow>=10.0
+

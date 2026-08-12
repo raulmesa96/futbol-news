@@ -33,6 +33,10 @@ jobs:
 
       - run: pip install -r requirements.txt
 
+      # El titular de las stories se dibuja sobre la imagen y hace falta una
+      # fuente TrueType; el corredor de Ubuntu no trae ninguna por defecto.
+      - run: sudo apt-get install -y -qq fonts-dejavu-core
+
       - name: Publicar noticias
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
